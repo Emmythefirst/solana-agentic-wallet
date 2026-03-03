@@ -73,6 +73,8 @@ Live dashboard available at `dashboard.html` — shows real-time balances, decis
 
 ## AgentVault — Custom Anchor Program
 
+Deployed via Solana Playground (https://beta.solpg.io). The program is live on devnet — no local Anchor installation required to run the project.
+
 Deployed on devnet at `JCDFEsY5Jq22vJRsUiKY6X4xxKmmavwtdiD4unaQridp`.
 
 Each agent has a PDA vault derived from its wallet address. The vault tracks:
