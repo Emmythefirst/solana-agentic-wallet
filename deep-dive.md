@@ -1,7 +1,5 @@
 # Deep Dive — Solana Agentic Wallet
 
-**Superteam Nigeria DeFi Developer Challenge**
-
 This document explains the architecture decisions, security model, and technical implementation of the Solana Agentic Wallet system.
 
 ---

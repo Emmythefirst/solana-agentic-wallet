@@ -1,7 +1,5 @@
 # Solana Agentic Wallet
 
-**Superteam Nigeria DeFi Developer Challenge Submission**
-
 Three autonomous AI agents running on Solana devnet — each managing its own wallet, making price-aware trading decisions, executing real on-chain transactions, and autonomously interacting with a custom deployed Anchor program.
 
 ---
