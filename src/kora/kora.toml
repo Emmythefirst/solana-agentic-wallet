@@ -1,0 +1,70 @@
+# ─── Kora Paymaster Configuration ───────────────────────────────────────────
+# This config defines the security policy for the Kora fee-sponsorship node.
+# Agents don't need SOL for gas — Kora sponsors fees in exchange for SPL tokens.
+# Reference: https://launch.solana.com/docs/kora/operators
+#
+# Agent roles and their per-role limits:
+#   Hedge  (Agent #1) — 0.02 SOL cap · 10 txs/day  — capital preservation
+#   Trader (Agent #2) — 0.05 SOL cap · 20 txs/day  — price-aware trading
+#   Raider (Agent #3) — 0.05 SOL cap · 30 txs/day  — aggressive deployer
+
+[server]
+port = 8080
+log_level = "info"
+
+# ─── Fee Payer Policy ────────────────────────────────────────────────────────
+[fee_payer]
+# Maximum fee Kora will sponsor per transaction (in lamports)
+max_fee_lamports = 5000
+# Maximum signatures per transaction
+max_signatures = 3
+
+# ─── Rate Limiting ───────────────────────────────────────────────────────────
+[rate_limiting]
+# Max requests per wallet per minute
+requests_per_minute = 10
+# Max transactions per wallet per day — set to Raider's limit (highest role)
+# Individual agent limits are enforced by GuardedSigner per role
+transactions_per_day = 30
+
+# ─── Program Allowlist ───────────────────────────────────────────────────────
+# Agents can ONLY interact with these programs.
+# Any transaction touching an unlisted program is rejected.
+[allowed_programs]
+programs = [
+  "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",  # Jupiter v6 Aggregator
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",   # SPL Token Program
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bv",   # Associated Token Account
+  "11111111111111111111111111111111",                # System Program
+  "So11111111111111111111111111111111111111112",     # Wrapped SOL
+]
+
+# ─── Token Allowlist ─────────────────────────────────────────────────────────
+# Only these SPL tokens accepted as fee payment
+[allowed_tokens]
+tokens = [
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+  "So11111111111111111111111111111111111111112",     # Wrapped SOL
+]
+
+# ─── Account Blocklist ───────────────────────────────────────────────────────
+# Prevent agents from interacting with these addresses
+[blocked_accounts]
+accounts = []
+
+# ─── Pricing Oracle ──────────────────────────────────────────────────────────
+[pricing]
+oracle = "jupiter"  # Use Jupiter for price feeds
+
+# ─── Per-Wallet Usage Limits ─────────────────────────────────────────────────
+[usage_limits]
+# Ceiling for the most permissive role (Raider). Per-role enforcement
+# happens at GuardedSigner level before Kora is even reached.
+max_transactions_per_wallet = 30
+max_fee_per_wallet_lamports = 100000  # 0.0001 SOL max sponsored per wallet
+
+# ─── Monitoring ──────────────────────────────────────────────────────────────
+[metrics]
+enabled = true
+endpoint = "/metrics"
+prometheus = true

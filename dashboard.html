@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solana Agentic Wallets — Live Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap');
+
+    :root {
+      --bg: #050810;
+      --surface: #0d1117;
+      --surface2: #161b22;
+      --border: #21262d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --red: #ff4444;
+      --blue: #58a6ff;
+      --hedge: #00ff88;
+      --trader: #a78bfa;
+      --raider: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.018) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 22px 24px;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left { display: flex; align-items: center; gap: 14px; }
+
+    .logo {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--hedge), #7c3aed);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+    }
+
+    h1 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    h1 span { color: var(--hedge); }
+    .subtitle { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    .price-ticker {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 20px; font-size: 14px;
+    }
+    .price-ticker .sol-label { color: var(--muted); }
+    .price-ticker .sol-price { color: var(--text); font-weight: 600; }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 16px;
+      background: rgba(0,255,136,0.07);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 20px; font-size: 13px; color: var(--hedge);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--hedge); animation: pulse 2s infinite;
+    }
+    .status-dot.offline { background: var(--red); animation: none; }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.4; transform:scale(0.75); }
+    }
+
+    /* ── Stat Cards ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 13px; margin-bottom: 18px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 22px;
+      position: relative; overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--hedge), transparent);
+    }
+
+    .stat-label {
+      font-size: 12px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 34px; font-weight: 800; color: var(--hedge); line-height: 1;
+    }
+
+    .stat-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 12px;
+    }
+
+    .stat-sub { font-size: 12px; color: var(--muted); }
+
+    .stat-delta {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 9px; border-radius: 10px;
+    }
+    .stat-delta.up { background: rgba(0,255,136,0.12); color: var(--hedge); }
+    .stat-delta.neutral { background: rgba(139,148,158,0.12); color: var(--muted); }
+
+    /* ── Mid Row ── */
+    .mid-row {
+      display: grid; grid-template-columns: 1fr 340px;
+      gap: 13px; margin-bottom: 18px;
+    }
+
+    .chart-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .panel-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    .chart-legend { display: flex; gap: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .chart-body { padding: 14px 18px 12px; height: 160px; }
+
+    /* ── Market Context ── */
+    .market-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+
+    .market-signal { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+
+    .signal-label {
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+    }
+
+    .signal-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; }
+    .signal-value.bullish { color: var(--hedge); }
+    .signal-value.bearish { color: var(--red); }
+    .signal-value.neutral { color: var(--muted); }
+
+    .signal-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+    .last-action-section { padding: 15px 20px; border-bottom: 1px solid var(--border); }
+
+    .last-action-label {
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+    }
+
+    .last-action-row { display: flex; align-items: center; gap: 10px; }
+
+    .la-pill {
+      padding: 3px 10px; border-radius: 5px;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+    }
+    .la-pill.hedge { background: rgba(0,255,136,0.15); color: var(--hedge); }
+    .la-pill.trader { background: rgba(167,139,250,0.15); color: var(--trader); }
+    .la-pill.raider { background: rgba(245,158,11,0.15); color: var(--raider); }
+
+    .la-action { font-size: 13px; font-weight: 600; color: var(--text); }
+    .la-time { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    .limits-section { padding: 15px 20px; flex: 1; }
+
+    .limit-row { margin-bottom: 13px; }
+    .limit-row:last-child { margin-bottom: 0; }
+
+    .limit-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .limit-name { font-size: 12px; color: var(--muted); }
+    .limit-count { font-size: 12px; font-weight: 600; }
+    .limit-count.hedge { color: var(--hedge); }
+    .limit-count.trader { color: var(--trader); }
+    .limit-count.raider { color: var(--raider); }
+
+    .limit-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .limit-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+    .limit-fill.hedge { background: var(--hedge); }
+    .limit-fill.trader { background: var(--trader); }
+    .limit-fill.raider { background: var(--raider); }
+
+    /* ── Agent Cards ── */
+    .agents-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 13px; margin-bottom: 18px;
+    }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px;
+      position: relative; overflow: hidden;
+      transition: box-shadow 0.3s;
+    }
+
+    .agent-card.hedge { border-top: 2px solid var(--hedge); }
+    .agent-card.trader { border-top: 2px solid var(--trader); }
+    .agent-card.raider { border-top: 2px solid var(--raider); }
+
+    .agent-card.active.hedge { box-shadow: 0 0 28px rgba(0,255,136,0.07); }
+    .agent-card.active.trader { box-shadow: 0 0 28px rgba(167,139,250,0.07); }
+    .agent-card.active.raider { box-shadow: 0 0 28px rgba(245,158,11,0.07); }
+
+    .agent-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 18px;
+    }
+
+    .agent-identity { display: flex; align-items: center; gap: 12px; }
+
+    .agent-avatar {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .agent-avatar.hedge { background: rgba(0,255,136,0.12); }
+    .agent-avatar.trader { background: rgba(167,139,250,0.12); }
+    .agent-avatar.raider { background: rgba(245,158,11,0.12); }
+
+    .agent-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+    .agent-name.hedge { color: var(--hedge); }
+    .agent-name.trader { color: var(--trader); }
+    .agent-name.raider { color: var(--raider); }
+
+    .agent-desc { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .agent-pubkey { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .agent-status {
+      padding: 4px 11px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .agent-status.idle { background: rgba(139,148,158,0.12); color: var(--muted); }
+    .agent-status.success { background: rgba(0,255,136,0.12); color: var(--hedge); }
+    .agent-status.stoploss { background: rgba(255,68,68,0.12); color: var(--red); }
+
+    .balance-section { margin-bottom: 16px; }
+    .balance-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .balance-value { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; }
+    .balance-value.hedge { color: var(--hedge); }
+    .balance-value.trader { color: var(--trader); }
+    .balance-value.raider { color: var(--raider); }
+
+    .tx-progress { margin-bottom: 14px; }
+    .tx-progress-header {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted); margin-bottom: 6px;
+    }
+    .tx-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+    .tx-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+    .tx-fill.hedge { background: var(--hedge); }
+    .tx-fill.trader { background: var(--trader); }
+    .tx-fill.raider { background: var(--raider); }
+
+    .agent-stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 7px; margin-bottom: 14px;
+    }
+
+    .mini-stat { background: var(--surface2); border-radius: 8px; padding: 10px 12px; }
+    .mini-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .mini-val { font-size: 15px; font-weight: 600; color: var(--text); }
+
+    .vault-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 14px;
+    }
+    .vault-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .vault-val { font-size: 15px; font-weight: 600; }
+    .vault-val.hedge { color: var(--hedge); }
+    .vault-val.trader { color: var(--trader); }
+    .vault-val.raider { color: var(--raider); }
+
+    .explorer-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-size: 12px; color: var(--blue); text-decoration: none;
+      padding: 9px 14px;
+      background: rgba(88,166,255,0.07);
+      border: 1px solid rgba(88,166,255,0.15);
+      border-radius: 8px; transition: all 0.2s; width: 100%;
+    }
+    .explorer-btn:hover { background: rgba(88,166,255,0.14); border-color: rgba(88,166,255,0.3); }
+
+    /* ── Feed ── */
+    .feed-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+
+    .panel-badge {
+      font-size: 11px; padding: 3px 10px;
+      background: var(--surface2); border-radius: 20px; color: var(--muted);
+    }
+
+    .events-list { height: 280px; overflow-y: auto; padding: 10px; }
+    .events-list::-webkit-scrollbar { width: 3px; }
+    .events-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .event-row {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity:0; transform:translateY(-5px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    .event-pill {
+      width: 58px; height: 22px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+    }
+    .event-pill.hedge { background: rgba(0,255,136,0.15); color: var(--hedge); }
+    .event-pill.trader { background: rgba(167,139,250,0.15); color: var(--trader); }
+    .event-pill.raider { background: rgba(245,158,11,0.15); color: var(--raider); }
+
+    .event-body { flex: 1; min-width: 0; }
+    .event-action { font-size: 12px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+    .event-detail { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .event-time { font-size: 10px; color: var(--muted); flex-shrink: 0; margin-top: 2px; }
+
+    .empty-msg { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 13px; }
+
+    .progress-bar { height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; margin: 0 10px 10px; }
+    .progress-fill { height: 100%; background: var(--hedge); animation: fill 3s linear infinite; border-radius: 1px; }
+    @keyframes fill { from{width:0%} to{width:100%} }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-left">
+      <div class="logo">◎</div>
+      <div>
+        <h1>Solana <span>Agentic</span> Wallets</h1>
+        <div class="subtitle">Superteam Nigeria Bounty • Devnet • Hedge · Trader · Raider</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="price-ticker">
+        <span class="sol-label">◎ SOL</span>
+        <span class="sol-price" id="solPrice">—</span>
+        <span id="solChange" style="font-weight:600">—</span>
+      </div>
+      <div class="live-badge">
+        <div class="status-dot offline" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Active Agents</div>
+      <div class="stat-value">3</div>
+      <div class="stat-meta">
+        <span class="stat-sub">Hedge · Trader · Raider</span>
+        <span class="stat-delta up">Parallel</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Decisions</div>
+      <div class="stat-value" id="totalDecisions">0</div>
+      <div class="stat-meta">
+        <span class="stat-sub">Autonomous actions taken</span>
+        <span class="stat-delta up" id="decisionsPerCycle">—</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cycles Complete</div>
+      <div class="stat-value" id="totalCycles">0</div>
+      <div class="stat-meta">
+        <span class="stat-sub">90s per cycle</span>
+        <span class="stat-delta neutral" id="lastCycleLabel">Waiting...</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total SOL Balance</div>
+      <div class="stat-value" id="totalBalance">0.00</div>
+      <div class="stat-meta">
+        <span class="stat-sub">Across all wallets</span>
+        <span class="stat-delta neutral" id="totalSpentLabel">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mid-row">
+    <div class="chart-panel">
+      <div class="panel-header">
+        <div class="panel-title">Decisions per Cycle</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--hedge)"></div>Hedge</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--trader)"></div>Trader</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--raider)"></div>Raider</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Total</div>
+        </div>
+      </div>
+      <div class="chart-body"><canvas id="activityChart"></canvas></div>
+    </div>
+
+    <div class="market-panel">
+      <div class="panel-header">
+        <div class="panel-title">Market Context</div>
+        <span style="font-size:11px;color:var(--muted)" id="lastUpdated">—</span>
+      </div>
+      <div class="market-signal">
+        <div class="signal-label">Market Signal</div>
+        <div class="signal-value neutral" id="marketSignal">Fetching...</div>
+        <div class="signal-sub" id="marketSub">Waiting for price data</div>
+      </div>
+      <div class="last-action-section">
+        <div class="last-action-label">Last Agent Action</div>
+        <div class="last-action-row" id="lastActionRow">
+          <div style="font-size:12px;color:var(--muted)">Waiting for first cycle...</div>
+        </div>
+        <div class="la-time" id="lastActionTime"></div>
+      </div>
+      <div class="limits-section">
+        <div class="signal-label" style="margin-bottom:12px">Daily Tx Usage</div>
+        <div class="limit-row">
+          <div class="limit-header">
+            <span class="limit-name">🛡️ Hedge</span>
+            <span class="limit-count hedge" id="hedgeCount">0 / 10</span>
+          </div>
+          <div class="limit-bar"><div class="limit-fill hedge" id="hedgeBar" style="width:0%"></div></div>
+        </div>
+        <div class="limit-row">
+          <div class="limit-header">
+            <span class="limit-name">📊 Trader</span>
+            <span class="limit-count trader" id="traderCount">0 / 20</span>
+          </div>
+          <div class="limit-bar"><div class="limit-fill trader" id="traderBar" style="width:0%"></div></div>
+        </div>
+        <div class="limit-row">
+          <div class="limit-header">
+            <span class="limit-name">⚡ Raider</span>
+            <span class="limit-count raider" id="raiderCount">0 / 30</span>
+          </div>
+          <div class="limit-bar"><div class="limit-fill raider" id="raiderBar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="agents-grid">
+    <div class="agent-card hedge" id="card1">
+      <div class="agent-header">
+        <div class="agent-identity">
+          <div class="agent-avatar hedge">🛡️</div>
+          <div>
+            <div class="agent-name hedge">Hedge</div>
+            <div class="agent-desc">Capital preservation</div>
+            <div class="agent-pubkey" id="key1">Loading...</div>
+          </div>
+        </div>
+        <div class="agent-status idle" id="status1">Idle</div>
+      </div>
+      <div class="balance-section">
+        <div class="balance-label">SOL Balance</div>
+        <div class="balance-value hedge" id="bal1">—</div>
+      </div>
+      <div class="tx-progress">
+        <div class="tx-progress-header"><span>Daily tx usage</span><span id="txLabel1">0 / 10</span></div>
+        <div class="tx-bar"><div class="tx-fill hedge" id="txBar1" style="width:0%"></div></div>
+      </div>
+      <div class="agent-stats-grid">
+        <div class="mini-stat"><div class="mini-label">Txs Signed</div><div class="mini-val" id="txs1">0</div></div>
+        <div class="mini-stat"><div class="mini-label">Spending Cap</div><div class="mini-val">0.02 SOL</div></div>
+        <div class="mini-stat"><div class="mini-label">Stop-Loss</div><div class="mini-val">0.3 SOL</div></div>
+        <div class="mini-stat"><div class="mini-label">Total Spent</div><div class="mini-val" id="spent1">0 SOL</div></div>
+      </div>
+      <div class="vault-row">
+        <div class="vault-label">⬡ Vault Position</div>
+        <div class="vault-val hedge" id="vault1">—</div>
+      </div>
+      <a class="explorer-btn" id="exp1" href="#" target="_blank">↗ View on Explorer</a>
+    </div>
+
+    <div class="agent-card trader" id="card2">
+      <div class="agent-header">
+        <div class="agent-identity">
+          <div class="agent-avatar trader">📊</div>
+          <div>
+            <div class="agent-name trader">Strategist</div>
+            <div class="agent-desc">Price-aware strategist</div>
+            <div class="agent-pubkey" id="key2">Loading...</div>
+          </div>
+        </div>
+        <div class="agent-status idle" id="status2">Idle</div>
+      </div>
+      <div class="balance-section">
+        <div class="balance-label">SOL Balance</div>
+        <div class="balance-value trader" id="bal2">—</div>
+      </div>
+      <div class="tx-progress">
+        <div class="tx-progress-header"><span>Daily tx usage</span><span id="txLabel2">0 / 20</span></div>
+        <div class="tx-bar"><div class="tx-fill trader" id="txBar2" style="width:0%"></div></div>
+      </div>
+      <div class="agent-stats-grid">
+        <div class="mini-stat"><div class="mini-label">Txs Signed</div><div class="mini-val" id="txs2">0</div></div>
+        <div class="mini-stat"><div class="mini-label">Spending Cap</div><div class="mini-val">0.05 SOL</div></div>
+        <div class="mini-stat"><div class="mini-label">Stop-Loss</div><div class="mini-val">0.2 SOL</div></div>
+        <div class="mini-stat"><div class="mini-label">Total Spent</div><div class="mini-val" id="spent2">0 SOL</div></div>
+      </div>
+      <div class="vault-row">
+        <div class="vault-label">⬡ Vault Position</div>
+        <div class="vault-val trader" id="vault2">—</div>
+      </div>
+      <a class="explorer-btn" id="exp2" href="#" target="_blank">↗ View on Explorer</a>
+    </div>
+
+    <div class="agent-card raider" id="card3">
+      <div class="agent-header">
+        <div class="agent-identity">
+          <div class="agent-avatar raider">⚡</div>
+          <div>
+            <div class="agent-name raider">Raider</div>
+            <div class="agent-desc">Aggressive deployer</div>
+            <div class="agent-pubkey" id="key3">Loading...</div>
+          </div>
+        </div>
+        <div class="agent-status idle" id="status3">Idle</div>
+      </div>
+      <div class="balance-section">
+        <div class="balance-label">SOL Balance</div>
+        <div class="balance-value raider" id="bal3">—</div>
+      </div>
+      <div class="tx-progress">
+        <div class="tx-progress-header"><span>Daily tx usage</span><span id="txLabel3">0 / 30</span></div>
+        <div class="tx-bar"><div class="tx-fill raider" id="txBar3" style="width:0%"></div></div>
+      </div>
+      <div class="agent-stats-grid">
+        <div class="mini-stat"><div class="mini-label">Txs Signed</div><div class="mini-val" id="txs3">0</div></div>
+        <div class="mini-stat"><div class="mini-label">Spending Cap</div><div class="mini-val">0.05 SOL</div></div>
+        <div class="mini-stat"><div class="mini-label">Stop-Loss</div><div class="mini-val">0.1 SOL</div></div>
+        <div class="mini-stat"><div class="mini-label">Total Spent</div><div class="mini-val" id="spent3">0 SOL</div></div>
+      </div>
+      <div class="vault-row">
+        <div class="vault-label">⬡ Vault Position</div>
+        <div class="vault-val raider" id="vault3">—</div>
+      </div>
+      <a class="explorer-btn" id="exp3" href="#" target="_blank">↗ View on Explorer</a>
+    </div>
+  </div>
+
+  <div class="feed-panel">
+    <div class="panel-header">
+      <div class="panel-title">Live Activity Feed</div>
+      <div class="panel-badge" id="evtCount">0 events</div>
+    </div>
+    <div class="events-list" id="eventsFeed">
+      <div class="empty-msg">Waiting for agent activity...</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+  </div>
+
+</div>
+<script>
+  const API = 'http://localhost:3001';
+  const ROLES = ['hedge', 'strategist', 'raider'];
+  const ROLE_NAMES = ['Hedge', 'Strategist', 'Raider'];
+  const ROLE_LIMITS = [10, 20, 30];
+  const STOP_LOSS = [0.3, 0.2, 0.1];
+
+  let knownEventIds = new Set();
+  let prevTxCounts = [0, 0, 0];
+  let prevTotalDecisions = 0;
+  let chartSeeded = false;
+
+  // Decision event tracking per cycle
+  let lastPlottedCycle = 0;
+  let cycleDecisions = [0, 0, 0]; // hedge, trader, raider counts for current cycle
+
+  const ctx = document.getElementById('activityChart').getContext('2d');
+  const chartData = { labels: [], hedge: [], trader: [], raider: [], total: [] };
+
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: [
+        { label:'Hedge',  data:chartData.hedge,  borderColor:'#00ff88', backgroundColor:'rgba(0,255,136,0.05)',   borderWidth:1.5, pointRadius:3, tension:0.4, fill:false },
+        { label:'Trader', data:chartData.trader, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.05)', borderWidth:1.5, pointRadius:3, tension:0.4, fill:false },
+        { label:'Raider', data:chartData.raider, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.05)',  borderWidth:1.5, pointRadius:3, tension:0.4, fill:false },
+        { label:'Total',  data:chartData.total,  borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,0.05)',  borderWidth:2,   pointRadius:3, tension:0.4, fill:true  },
+      ],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      animation:{ duration:500 },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'#0d1117', borderColor:'#21262d', borderWidth:1,
+          titleColor:'#8b949e', bodyColor:'#e6edf3',
+          titleFont:{ family:'JetBrains Mono', size:11 },
+          bodyFont:{ family:'JetBrains Mono', size:12 },
+        }
+      },
+      scales:{
+        x:{ grid:{ color:'rgba(33,38,45,0.5)', drawTicks:false }, ticks:{ color:'#8b949e', font:{ family:'JetBrains Mono', size:11 }, maxTicksLimit:10 } },
+        y:{ grid:{ color:'rgba(33,38,45,0.5)', drawTicks:false }, ticks:{ color:'#8b949e', font:{ family:'JetBrains Mono', size:11 }, stepSize:1 }, beginAtZero:true },
+      },
+    },
+  });
+
+  function updateChart(agentStats, totalDecisions, totalCycles) {
+    if (!agentStats || !agentStats.length || totalCycles === 0) return;
+
+    // New cycle completed — plot the decisions that happened during it
+    if (totalCycles > lastPlottedCycle) {
+      const label = `C${totalCycles}`;
+      chartData.labels.push(label);
+      if (chartData.labels.length > 20) chartData.labels.shift();
+
+      chartData.hedge.push(cycleDecisions[0]);
+      chartData.trader.push(cycleDecisions[1]);
+      chartData.raider.push(cycleDecisions[2]);
+      chartData.total.push(cycleDecisions[0] + cycleDecisions[1] + cycleDecisions[2]);
+
+      [chartData.hedge, chartData.trader, chartData.raider, chartData.total].forEach(arr => {
+        if (arr.length > 20) arr.shift();
+      });
+
+      lastPlottedCycle = totalCycles;
+      cycleDecisions = [0, 0, 0]; // reset for next cycle
+      chart.update();
+    }
+  }
+
+  async function fetchStats() {
+    try {
+      const res = await fetch(`${API}/api/stats`);
+      const json = await res.json();
+      if (json.success) {
+        updateStats(json.data);
+        updateChart(json.data.agentStats, json.data.totalDecisions, json.data.totalCycles);
+      }
+      setOnline(true);
+    } catch { setOnline(false); }
+  }
+
+  function setOnline(on) {
+    document.getElementById('statusDot').className = 'status-dot' + (on ? '' : ' offline');
+    document.getElementById('statusText').textContent = on ? 'Live' : 'Connecting...';
+  }
+
+  function updateStats(data) {
+    document.getElementById('totalDecisions').textContent = data.totalDecisions;
+    document.getElementById('totalCycles').textContent = data.totalCycles;
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+    document.getElementById('decisionsPerCycle').textContent =
+      data.totalCycles > 0 ? `${(data.totalDecisions / data.totalCycles).toFixed(1)}/cycle` : '—';
+    document.getElementById('lastCycleLabel').textContent =
+      data.totalCycles > 0 ? `Cycle ${data.totalCycles}` : 'Waiting...';
+
+    let totalBal = 0, totalSpent = 0;
+    data.agentStats.forEach((agent, i) => {
+      if (!agent.agentId) return;
+      const n = i + 1;
+      const bal = agent.balanceSol ?? 0;
+      const txs = agent.guard?.transactionCount ?? 0;
+      const spent = agent.guard?.totalSpentSol ?? 0;
+      const limit = ROLE_LIMITS[i];
+      const pct = Math.min(100, (txs / limit) * 100);
+      totalBal += bal;
+      totalSpent += spent;
+      document.getElementById(`bal${n}`).textContent = bal.toFixed(4) + ' SOL';
+      document.getElementById(`key${n}`).textContent = (agent.publicKey?.slice(0,10)??'') + '...' + (agent.publicKey?.slice(-6)??'');
+      document.getElementById(`txs${n}`).textContent = txs;
+      document.getElementById(`spent${n}`).textContent = spent.toFixed(4) + ' SOL';
+      document.getElementById(`txLabel${n}`).textContent = `${txs} / ${limit}`;
+      document.getElementById(`txBar${n}`).style.width = pct + '%';
+
+      // Vault position
+      const vaultEl = document.getElementById(`vault${n}`);
+      if (vaultEl) {
+        const vaultSol = agent.vaultPosition ?? 0;
+        vaultEl.textContent = vaultSol > 0 ? vaultSol.toFixed(4) + ' SOL locked' : 'No position yet';
+      }
+      const expEl = document.getElementById(`exp${n}`);
+      if (expEl && agent.explorerUrl) expEl.href = agent.explorerUrl;
+      const statusEl = document.getElementById(`status${n}`);
+      if (statusEl) {
+        if (bal < STOP_LOSS[i]) {
+          statusEl.className = 'agent-status stoploss'; statusEl.textContent = 'Stop-Loss';
+        } else if (data.totalCycles > 0) {
+          statusEl.className = 'agent-status success'; statusEl.textContent = 'Active';
+        }
+      }
+      document.getElementById(['hedgeBar','traderBar','raiderBar'][i]).style.width = pct + '%';
+      document.getElementById(['hedgeCount','traderCount','raiderCount'][i]).textContent = `${txs} / ${limit}`;
+    });
+    document.getElementById('totalBalance').textContent = totalBal.toFixed(4);
+    document.getElementById('totalSpentLabel').textContent = totalSpent > 0 ? `${totalSpent.toFixed(4)} spent` : '—';
+  }
+
+  async function fetchEvents() {
+    try {
+      const res = await fetch(`${API}/api/events`);
+      const json = await res.json();
+      if (json.success) updateEvents(json.data);
+    } catch {}
+  }
+
+  function updateEvents(events) {
+    const feed = document.getElementById('eventsFeed');
+    const newEvts = events.filter(e => !knownEventIds.has(e.id));
+    if (!newEvts.length) return;
+    if (feed.querySelector('.empty-msg')) feed.innerHTML = '';
+    newEvts.forEach(evt => {
+      knownEventIds.add(evt.id);
+      const roleIndex = (evt.agentId - 1) % 3;
+      const roleClass = ROLES[roleIndex];
+      const roleName = ROLE_NAMES[roleIndex];
+      const time = new Date(evt.timestamp).toLocaleTimeString();
+
+      // Count this decision for the current cycle
+      cycleDecisions[roleIndex]++;
+      document.getElementById('lastActionRow').innerHTML = `
+        <div class="la-pill ${roleClass}">${roleName}</div>
+        <div class="la-action">${(evt.action||'observe').replace(/_/g,' ')}</div>
+      `;
+      document.getElementById('lastActionTime').textContent = time;
+      const el = document.createElement('div');
+      el.className = 'event-row';
+      el.innerHTML = `
+        <div class="event-pill ${roleClass}">${roleName}</div>
+        <div class="event-body">
+          <div class="event-action">${(evt.action||'observe').replace(/_/g,' ')}</div>
+          <div class="event-detail">${(evt.result||'').slice(0,120)}...</div>
+        </div>
+        <div class="event-time">${time}</div>
+      `;
+      feed.insertBefore(el, feed.firstChild);
+    });
+    document.getElementById('evtCount').textContent = `${events.length} events`;
+    while (feed.children.length > 25) feed.removeChild(feed.lastChild);
+  }
+
+  async function fetchPrice() {
+    try {
+      const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true');
+      const data = await res.json();
+      const price = data?.solana?.usd;
+      const change = data?.solana?.usd_24h_change;
+      if (!price) return;
+      document.getElementById('solPrice').textContent = `$${price.toFixed(2)}`;
+      const changeEl = document.getElementById('solChange');
+      const isUp = change >= 0;
+      changeEl.textContent = `${isUp ? '📈' : '📉'} ${isUp ? '+' : ''}${change.toFixed(2)}%`;
+      changeEl.style.color = isUp ? 'var(--hedge)' : 'var(--red)';
+      const signalEl = document.getElementById('marketSignal');
+      const subEl = document.getElementById('marketSub');
+      if (isUp && change > 1) {
+        signalEl.className = 'signal-value bullish';
+        signalEl.textContent = '📈 BULLISH';
+        subEl.textContent = `+${change.toFixed(2)}% 24h · Trader deploying liquidity`;
+      } else if (!isUp) {
+        signalEl.className = 'signal-value bearish';
+        signalEl.textContent = '📉 BEARISH';
+        subEl.textContent = `${change.toFixed(2)}% 24h · Trader conserving capital`;
+      } else {
+        signalEl.className = 'signal-value neutral';
+        signalEl.textContent = '➡️ NEUTRAL';
+        subEl.textContent = `+${change.toFixed(2)}% 24h · Monitoring trend`;
+      }
+    } catch {}
+  }
+
+  fetchStats(); fetchEvents(); fetchPrice();
+  setInterval(fetchStats, 3000);
+  setInterval(fetchEvents, 3000);
+  setInterval(fetchPrice, 30000);
+</script>
+</body>
+</html>

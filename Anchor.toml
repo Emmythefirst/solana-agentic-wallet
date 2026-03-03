@@ -1,0 +1,10 @@
+# AgentVault — custom Anchor program deployed to Solana devnet
+# Deployed via Solana Playground (https://beta.solpg.io)
+# Program source: programs/agentvault/src/lib.rs
+
+[programs.devnet]
+agentvault = "JCDFEsY5Jq22vJRsUiKY6X4xxKmmavwtdiD4unaQridp"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"

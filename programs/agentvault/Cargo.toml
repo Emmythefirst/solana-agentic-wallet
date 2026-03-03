@@ -1,0 +1,12 @@
+[package]
+name = "agentvault"
+version = "0.1.0"
+description = "AgentVault — autonomous agent deposit/withdraw protocol"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "agentvault"
+
+[dependencies]
+anchor-lang = "0.31.1"
