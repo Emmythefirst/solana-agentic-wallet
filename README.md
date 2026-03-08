@@ -120,8 +120,6 @@ solana-agentic-wallet/
 ├── target/
 │   └── idl/
 │       └── agentvault.json            # Program IDL
-├── .keys/                             # Agent keypairs (gitignored)
-├── .env                               # Config (gitignored)
 ├── .env.example
 ├── .gitignore
 ├── Anchor.toml                        # Program deployment config
