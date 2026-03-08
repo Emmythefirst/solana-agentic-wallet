@@ -398,7 +398,7 @@
       <div class="logo">◎</div>
       <div>
         <h1>Solana <span>Agentic</span> Wallets</h1>
-        <div class="subtitle">Superteam Nigeria Bounty • Devnet • Hedge · Trader · Raider</div>
+        <div class="subtitle">Superteam Nigeria Bounty • Devnet • Hedge · Strategist · Raider</div>
       </div>
     </div>
     <div class="header-right">
@@ -419,7 +419,7 @@
       <div class="stat-label">Active Agents</div>
       <div class="stat-value">3</div>
       <div class="stat-meta">
-        <span class="stat-sub">Hedge · Trader · Raider</span>
+        <span class="stat-sub">Hedge · Strategist · Raider</span>
         <span class="stat-delta up">Parallel</span>
       </div>
     </div>
@@ -455,7 +455,7 @@
         <div class="panel-title">Decisions per Cycle</div>
         <div class="chart-legend">
           <div class="legend-item"><div class="legend-dot" style="background:var(--hedge)"></div>Hedge</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--trader)"></div>Trader</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--trader)"></div>Strategist</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--raider)"></div>Raider</div>
           <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Total</div>
         </div>
@@ -491,7 +491,7 @@
         </div>
         <div class="limit-row">
           <div class="limit-header">
-            <span class="limit-name">📊 Trader</span>
+            <span class="limit-name">📊 Strategist</span>
             <span class="limit-count trader" id="traderCount">0 / 20</span>
           </div>
           <div class="limit-bar"><div class="limit-fill trader" id="traderBar" style="width:0%"></div></div>
@@ -820,11 +820,11 @@
       if (isUp && change > 1) {
         signalEl.className = 'signal-value bullish';
         signalEl.textContent = '📈 BULLISH';
-        subEl.textContent = `+${change.toFixed(2)}% 24h · Trader deploying liquidity`;
+        subEl.textContent = `+${change.toFixed(2)}% 24h · Strategist deploying liquidity`;
       } else if (!isUp) {
         signalEl.className = 'signal-value bearish';
         signalEl.textContent = '📉 BEARISH';
-        subEl.textContent = `${change.toFixed(2)}% 24h · Trader conserving capital`;
+        subEl.textContent = `${change.toFixed(2)}% 24h · Strategist conserving capital`;
       } else {
         signalEl.className = 'signal-value neutral';
         signalEl.textContent = '➡️ NEUTRAL';

@@ -18,6 +18,13 @@ Each agent:
 
 ---
 
+
+## Demo Video
+
+[Watch the demo](https://www.loom.com/share/f03535d2d4f04be9bd697ba2d71def60)
+
+---
+
 ## Demo
 
 Start the system with `npm start`. Three agents initialize in parallel, each with its own Solana keypair and spending limits. Every 90 seconds a new cycle runs:
